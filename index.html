@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyVoyage — Fly Beyond</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700;900&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #e8f4fd;
+    --text: #1e1b4b;
+    --muted: #6b7280;
+    --accent: #4338ca;
+    --accent2: #6366f1;
+    --accent-light: #e0e7ff;
+    --card-bg: rgba(255,255,255,0.85);
+    --white: #ffffff;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: multiply;
+  }
+  .cursor-ring {
+    width: 38px; height: 38px;
+    border: 1.5px solid rgba(67,56,202,0.35);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease;
+  }
+
+  /* Loading Screen */
+  #loader {
+    position: fixed; inset: 0;
+    background: #f0f5ff;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .loader-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--text);
+    margin-bottom: 48px;
+  }
+  .loader-logo span { color: var(--accent); }
+
+  .loader-plane {
+    font-size: 48px;
+    margin-bottom: 40px;
+    animation: loaderFly 1.5s ease-in-out infinite;
+  }
+  @keyframes loaderFly {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-14px) rotate(5deg); }
+  }
+
+  .loader-bar-wrap {
+    width: 300px; height: 2px;
+    background: rgba(67,56,202,0.12);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .loader-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%;
+    transition: width 0.4s ease;
+    border-radius: 10px;
+  }
+  .loader-status {
+    margin-top: 20px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-height: 16px;
+  }
+
+  /* Main canvas */
+  #bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 76px;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(67,56,202,0.08);
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px; font-weight: 700;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-links {
+    display: flex; gap: 44px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 14px; font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-cta {
+    padding: 10px 26px;
+    border: 1.5px solid var(--accent);
+    border-radius: 100px;
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    transition: all 0.3s;
+    background: transparent;
+    cursor: none;
+  }
+  .nav-cta:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Sections */
+  section {
+    position: relative; z-index: 10;
+    min-height: 100vh;
+  }
+
+  /* HERO */
+  #hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 76px 40px 0;
+    min-height: 100vh;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+    background: var(--accent-light);
+    padding: 8px 20px;
+    border-radius: 100px;
+    border: 1px solid rgba(67,56,202,0.15);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: revealUp 0.8s ease 2.2s forwards;
+  }
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(60px, 9vw, 130px);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -3px;
+    color: var(--text);
+    margin-bottom: 32px;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: revealUp 0.9s ease 2.4s forwards;
+  }
+  .hero-title em { color: var(--accent); font-style: italic; }
+  .hero-sub {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 440px;
+    line-height: 1.8;
+    margin-bottom: 48px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: revealUp 0.8s ease 2.6s forwards;
+  }
+  .hero-buttons {
+    display: flex; gap: 16px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: revealUp 0.8s ease 2.8s forwards;
+  }
+  .btn-primary {
+    padding: 16px 40px;
+    background: var(--accent);
+    color: white;
+    border-radius: 100px;
+    font-size: 14px; font-weight: 600;
+    cursor: none;
+    text-decoration: none;
+    transition: all 0.3s;
+    box-shadow: 0 8px 24px rgba(67,56,202,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 36px rgba(67,56,202,0.4); background: #3730a3; }
+  .btn-secondary {
+    padding: 16px 40px;
+    border: 1.5px solid rgba(67,56,202,0.25);
+    color: var(--accent);
+    border-radius: 100px;
+    font-size: 14px; font-weight: 500;
+    cursor: none;
+    text-decoration: none;
+    transition: all 0.3s;
+    background: rgba(255,255,255,0.7);
+  }
+  .btn-secondary:hover { border-color: var(--accent); background: var(--accent-light); }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    opacity: 0;
+    animation: revealUp 0.8s ease 3.2s forwards;
+  }
+  .scroll-hint span {
+    font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .scroll-line {
+    width: 1px; height: 50px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: scrollPulse 2s ease infinite;
+  }
+
+  /* ——— SCROLL SCENE SECTION ——— */
+  #scene-section {
+    height: 400vh;
+    position: relative;
+  }
+  .scene-sticky {
+    position: sticky; top: 0;
+    height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .scene-label {
+    position: absolute;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(48px, 7vw, 100px);
+    font-weight: 900;
+    letter-spacing: -2px;
+    text-align: center;
+    color: var(--text);
+    pointer-events: none;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    text-shadow: 0 2px 20px rgba(255,255,255,0.8);
+  }
+  .scene-label.hidden { opacity: 0; transform: scale(0.95); }
+
+  .info-panels {
+    position: absolute;
+    bottom: 60px; left: 60px; right: 60px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    pointer-events: none;
+  }
+  .info-stat {
+    opacity: 0; transform: translateY(20px);
+    transition: all 0.6s ease;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(67,56,202,0.12);
+    border-radius: 16px;
+    padding: 20px 28px;
+  }
+  .info-stat.visible { opacity: 1; transform: none; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 44px; font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ——— CARDS SECTION ——— */
+  .cards-section {
+    padding: 100px 60px;
+    background: linear-gradient(to bottom, rgba(232,244,253,0) 0%, rgba(240,245,255,1) 8%);
+  }
+  .section-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 60px;
+  }
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 11px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--accent);
+    background: var(--accent-light);
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(67,56,202,0.15);
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 4vw, 58px);
+    font-weight: 900; line-height: 1;
+    letter-spacing: -1.5px;
+    color: var(--text);
+  }
+  .section-link {
+    font-size: 13px; color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(67,56,202,0.3);
+    padding-bottom: 2px;
+    transition: all 0.3s;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .section-link:hover { border-color: var(--accent); }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    transition: all 0.4s ease;
+    border: 1px solid rgba(67,56,202,0.08);
+    box-shadow: 0 4px 24px rgba(67,56,202,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+    border-radius: 3px 3px 0 0;
+  }
+  .card:hover { transform: translateY(-10px); box-shadow: 0 20px 48px rgba(67,56,202,0.15); border-color: rgba(67,56,202,0.18); }
+  .card:hover::after { transform: scaleX(1); }
+
+  .card-tag {
+    display: inline-block;
+    font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 6px 14px; border-radius: 100px;
+    margin-bottom: 26px;
+    border: 1px solid rgba(67,56,202,0.18);
+    font-weight: 600;
+  }
+  .card-tag.popular { color: #7c3aed; background: #ede9fe; border-color: rgba(124,58,237,0.2); }
+  .card-icon-wrap {
+    width: 60px; height: 60px;
+    border-radius: 18px;
+    background: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    margin-bottom: 22px;
+  }
+  .card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .card p {
+    font-size: 14px; color: var(--muted);
+    line-height: 1.85;
+  }
+  .card-price {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(67,56,202,0.08);
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .price-from { font-size: 11px; color: var(--muted); letter-spacing: 1px; font-weight: 500; }
+  .price-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; font-weight: 700; color: var(--accent);
+  }
+  .price-unit { font-size: 12px; color: var(--muted); }
+
+  .card.featured {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border-color: rgba(124,58,237,0.2);
+  }
+
+  /* ——— DESTINATIONS ——— */
+  .destinations-section { padding: 100px 60px; background: #f0f5ff; }
+  .dest-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: 320px 220px;
+    gap: 20px;
+    margin-top: 60px;
+  }
+  .dest-card {
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    cursor: none;
+    transition: transform 0.5s ease, box-shadow 0.5s ease;
+    box-shadow: 0 8px 32px rgba(67,56,202,0.1);
+  }
+  .dest-card:hover { transform: scale(0.985); box-shadow: 0 20px 60px rgba(67,56,202,0.2); }
+  .dest-card:nth-child(1) { grid-row: 1 / 3; }
+  .dest-bg {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.8s ease;
+  }
+  .dest-card:hover .dest-bg { transform: scale(1.08); }
+  .dest-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(30,27,75,0.85) 0%, rgba(30,27,75,0.1) 60%, transparent 100%);
+  }
+  .dest-info { position: absolute; bottom: 28px; left: 28px; right: 28px; }
+  .dest-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px; font-weight: 700;
+    color: white; margin-bottom: 4px;
+  }
+  .dest-sub { font-size: 12px; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; }
+  .dest-price {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    border-radius: 100px;
+    padding: 7px 16px;
+    font-size: 13px; color: var(--accent);
+    font-weight: 700;
+    border: 1px solid rgba(67,56,202,0.15);
+  }
+
+  /* ——— MARQUEE ——— */
+  .marquee-section {
+    padding: 48px 0; overflow: hidden;
+    background: white;
+    border-top: 1px solid rgba(67,56,202,0.07);
+    border-bottom: 1px solid rgba(67,56,202,0.07);
+  }
+  .marquee-track {
+    display: flex; gap: 60px;
+    animation: marquee 22s linear infinite;
+    white-space: nowrap;
+    width: max-content;
+  }
+  .marquee-item {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 400;
+    color: rgba(30,27,75,0.2);
+    display: flex; align-items: center; gap: 20px;
+    flex-shrink: 0;
+  }
+  .marquee-dot { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; flex-shrink: 0; opacity: 0.5; }
+
+  /* ——— FOOTER ——— */
+  footer {
+    padding: 80px 60px 36px;
+    background: var(--text);
+    position: relative; z-index: 10;
+    color: rgba(255,255,255,0.85);
+  }
+  .footer-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 36px;
+  }
+  .footer-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 34px; font-weight: 900;
+    color: white; letter-spacing: -1px;
+  }
+  .footer-brand span { color: #818cf8; }
+  .footer-tagline { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 10px; }
+  .footer-links { display: flex; gap: 60px; }
+  .footer-col h4 {
+    font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+    margin-bottom: 20px;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .footer-col a {
+    font-size: 14px; color: rgba(255,255,255,0.5);
+    text-decoration: none; transition: color 0.3s;
+  }
+  .footer-col a:hover { color: white; }
+  .footer-bottom {
+    display: flex; justify-content: space-between;
+  }
+  .footer-copy { font-size: 12px; color: rgba(255,255,255,0.25); }
+
+  /* Animations */
+  @keyframes revealUp {
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  .reveal {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.22s; }
+  .reveal-delay-3 { transition-delay: 0.34s; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Loading Screen -->
+<div id="loader">
+  <div class="loader-plane">✈️</div>
+  <div class="loader-logo">Sky<span>Voyage</span></div>
+  <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+  <div class="loader-status" id="loaderStatus">Preparing runway...</div>
+</div>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- Navigation -->
+<nav>
+  <a href="#" class="nav-logo">Sky<span>Voyage</span></a>
+  <ul class="nav-links">
+    <li><a href="#flights">Flights</a></li>
+    <li><a href="#hotels">Hotels</a></li>
+    <li><a href="#destinations">Destinations</a></li>
+  </ul>
+  <a href="#" class="nav-cta">Book Now</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-eyebrow">Premium Travel Experience</div>
+  <h1 class="hero-title">Fly<br><em>Beyond</em><br>Horizons</h1>
+  <p class="hero-sub">Curated journeys to the world's most extraordinary destinations. First-class experiences at every altitude.</p>
+  <div class="hero-buttons">
+    <a href="#destinations" class="btn-primary">Explore Destinations</a>
+    <a href="#flights" class="btn-secondary">View Flights</a>
+  </div>
+  <div class="scroll-hint">
+    <span>Scroll to explore</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- SCROLL SCENE -->
+<section id="scene-section">
+  <div class="scene-sticky">
+    <div class="scene-label" id="sceneLabel">The World<br>Awaits You</div>
+    <div class="info-panels">
+      <div class="info-stat" id="stat1"><div class="stat-num">150+</div><div class="stat-label">Destinations</div></div>
+      <div class="info-stat" id="stat2"><div class="stat-num">20L+</div><div class="stat-label">Happy Travellers</div></div>
+      <div class="info-stat" id="stat3"><div class="stat-num">98%</div><div class="stat-label">Satisfaction</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- AIRLINES -->
+<section id="flights">
+  <div class="cards-section">
+    <div class="section-header">
+      <div>
+        <div class="section-eyebrow">Our Airlines</div>
+        <div class="section-title reveal">First Class<br>Connections</div>
+      </div>
+      <a href="#" class="section-link">View all airlines →</a>
+    </div>
+    <div class="cards-grid">
+      <div class="card reveal reveal-delay-1">
+        <div class="card-tag">Premium</div>
+        <div class="card-icon-wrap">✈️</div>
+        <h3>Apex Airways</h3>
+        <p>Luxury long-haul flights with lie-flat beds, gourmet menus, and private suites on all international routes.</p>
+        <div class="card-price">
+          <span class="price-from">FROM</span>
+          <span class="price-num">₹1,07,999</span>
+          <span class="price-unit">/ flight</span>
+        </div>
+      </div>
+      <div class="card featured reveal reveal-delay-2">
+        <div class="card-tag popular">Most Popular</div>
+        <div class="card-icon-wrap">🛫</div>
+        <h3>Horizon Air</h3>
+        <p>Award-winning mid-range carrier offering business class comfort at accessible price points. 80+ routes.</p>
+        <div class="card-price">
+          <span class="price-from">FROM</span>
+          <span class="price-num">₹45,499</span>
+          <span class="price-unit">/ flight</span>
+        </div>
+      </div>
+      <div class="card reveal reveal-delay-3">
+        <div class="card-tag">Budget</div>
+        <div class="card-icon-wrap">🌍</div>
+        <h3>Globe Express</h3>
+        <p>Smart travellers' choice — reliable, on-time, with premium economy upgrades for the comfort-conscious.</p>
+        <div class="card-price">
+          <span class="price-from">FROM</span>
+          <span class="price-num">₹12,299</span>
+          <span class="price-unit">/ flight</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <div class="marquee-item"><span class="marquee-dot"></span>Paris, France</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Maldives</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Tokyo, Japan</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Santorini, Greece</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Bali, Indonesia</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Dubai, UAE</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Singapore</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Goa, India</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Kashmir</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Rajasthan</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Paris, France</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Maldives</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Tokyo, Japan</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Santorini, Greece</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Bali, Indonesia</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Dubai, UAE</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Singapore</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Goa, India</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Kashmir</div>
+    <div class="marquee-item"><span class="marquee-dot"></span>Rajasthan</div>
+  </div>
+</div>
+
+<!-- HOTELS -->
+<section id="hotels">
+  <div class="cards-section" style="background: white; padding-top: 80px;">
+    <div class="section-header">
+      <div>
+        <div class="section-eyebrow">Accommodations</div>
+        <div class="section-title reveal">Stay in<br>Pure Luxury</div>
+      </div>
+      <a href="#" class="section-link">Browse all hotels →</a>
+    </div>
+    <div class="cards-grid">
+      <div class="card reveal reveal-delay-1">
+        <div class="card-tag">5-Star</div>
+        <div class="card-icon-wrap">🏰</div>
+        <h3>Grand Palace Resorts</h3>
+        <p>Heritage palaces reimagined as ultra-luxury stays — private pools, personal butlers, and world-class spas.</p>
+        <div class="card-price">
+          <span class="price-from">FROM</span>
+          <span class="price-num">₹70,499</span>
+          <span class="price-unit">/ night</span>
+        </div>
+      </div>
+      <div class="card reveal reveal-delay-2">
+        <div class="card-tag">Overwater</div>
+        <div class="card-icon-wrap">🌊</div>
+        <h3>Lagoon Villas Maldives</h3>
+        <p>Iconic overwater bungalows above crystal lagoons, with glass floors, direct ocean access, and sunrise views.</p>
+        <div class="card-price">
+          <span class="price-from">FROM</span>
+          <span class="price-num">₹99,999</span>
+          <span class="price-unit">/ night</span>
+        </div>
+      </div>
+      <div class="card featured reveal reveal-delay-3">
+        <div class="card-tag popular">Trending</div>
+        <div class="card-icon-wrap">🏔️</div>
+        <h3>Alpine Sky Lodges</h3>
+        <p>Panoramic mountain retreats with floor-to-ceiling glass walls framing snow-capped peaks and Nordic forests.</p>
+        <div class="card-price">
+          <span class="price-from">FROM</span>
+          <span class="price-num">₹34,799</span>
+          <span class="price-unit">/ night</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DESTINATIONS -->
+<section id="destinations">
+  <div class="destinations-section">
+    <div class="section-header">
+      <div>
+        <div class="section-eyebrow">Top Destinations</div>
+        <div class="section-title reveal">Where Will You<br>Go Next?</div>
+      </div>
+      <a href="#" class="section-link">All destinations →</a>
+    </div>
+    <div class="dest-grid reveal">
+      <div class="dest-card">
+        <div class="dest-bg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 110px;">🗼</div>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-name">Paris, France</div><div class="dest-sub">City of Light · Europe</div></div>
+        <div class="dest-price">From ₹74,499</div>
+      </div>
+      <div class="dest-card">
+        <div class="dest-bg" style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); font-size: 80px;">🌴</div>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-name">Maldives</div><div class="dest-sub">Island Paradise · Indian Ocean</div></div>
+        <div class="dest-price">From ₹2,07,999</div>
+      </div>
+      <div class="dest-card">
+        <div class="dest-bg" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); font-size: 80px;">⛩️</div>
+        <div class="dest-overlay"></div>
+        <div class="dest-info"><div class="dest-name">Kyoto, Japan</div><div class="dest-sub">Ancient Wonder · Asia</div></div>
+        <div class="dest-price">From ₹99,499</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div>
+      <div class="footer-brand">Sky<span>Voyage</span></div>
+      <div class="footer-tagline">Your journey beyond horizons starts here.</div>
+    </div>
+    <div class="footer-links">
+      <div class="footer-col">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="#">Flights</a></li>
+          <li><a href="#">Hotels</a></li>
+          <li><a href="#">Packages</a></li>
+          <li><a href="#">Destinations</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul>
+          <li><a href="#">Help Centre</a></li>
+          <li><a href="#">Booking Info</a></li>
+          <li><a href="#">Cancellations</a></li>
+          <li><a href="#">Travel Insurance</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 SkyVoyage. All rights reserved.</div>
+    <div class="footer-copy">Crafted with passion for Indian travellers.</div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ════════════════════════════════
+// CURSOR
+// ════════════════════════════════
+const cursor = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursorRing');
+let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  cursor.style.left = mouseX + 'px'; cursor.style.top = mouseY + 'px';
+});
+(function animRing() {
+  ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12;
+  cursorRing.style.left = ringX + 'px'; cursorRing.style.top = ringY + 'px';
+  requestAnimationFrame(animRing);
+})();
+
+// ════════════════════════════════
+// LOADER
+// ════════════════════════════════
+const loaderBar = document.getElementById('loaderBar');
+const loaderStatus = document.getElementById('loaderStatus');
+const loader = document.getElementById('loader');
+const steps = [
+  [15, 'Preparing runway...'],
+  [35, 'Fuelling the engines...'],
+  [55, 'Painting the sky...'],
+  [75, 'Releasing the clouds...'],
+  [92, 'Cleared for takeoff...'],
+  [100, 'Welcome aboard! ✈️'],
+];
+let si = 0;
+function nextStep() {
+  if (si >= steps.length) { setTimeout(() => loader.classList.add('hidden'), 400); return; }
+  const [p, m] = steps[si++];
+  loaderBar.style.width = p + '%';
+  loaderStatus.textContent = m;
+  setTimeout(nextStep, 380 + Math.random() * 180);
+}
+setTimeout(nextStep, 200);
+
+// ════════════════════════════════
+// THREE.JS SCENE
+// ════════════════════════════════
+const canvas = document.getElementById('bg-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0xc9e8f8, 1);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xc9e8f8);
+scene.fog = new THREE.Fog(0xddeefa, 60, 150);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 0, 14);
+
+// Lighting — bright daytime
+const hemisLight = new THREE.HemisphereLight(0x87ceeb, 0xffffff, 0.9);
+scene.add(hemisLight);
+const sunLight = new THREE.DirectionalLight(0xfff5e0, 1.4);
+sunLight.position.set(20, 30, 10);
+scene.add(sunLight);
+const fillLight = new THREE.DirectionalLight(0xcce8ff, 0.5);
+fillLight.position.set(-15, 5, 8);
+scene.add(fillLight);
+
+// ── SKY GRADIENT (large dome) ──
+const skyGeo = new THREE.SphereGeometry(200, 16, 8);
+const skyMat = new THREE.MeshBasicMaterial({
+  color: 0x8ec5e8,
+  side: THREE.BackSide,
+});
+scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+// ── CLOUDS ──
+function makeCloud(x, y, z, scale, opacity) {
+  const g = new THREE.Group();
+  const blobs = [
+    [0, 0, 0, 2.2],
+    [2.2, 0.3, 0.3, 1.7],
+    [-1.8, 0.2, 0.2, 1.5],
+    [0.8, 1.1, 0, 1.3],
+    [1.2, -0.2, 0.8, 1.0],
+    [-0.5, 0.8, -0.5, 1.1],
+  ];
+  blobs.forEach(([bx, by, bz, r]) => {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 10, 7),
+      new THREE.MeshLambertMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: opacity !== undefined ? opacity : (0.82 + Math.random() * 0.16),
+      })
+    );
+    mesh.position.set(bx, by, bz);
+    g.add(mesh);
+  });
+  g.position.set(x, y, z);
+  g.scale.setScalar(scale);
+  return g;
+}
+
+const clouds = [];
+const cloudData = [
+  [-30,  6, -30, 2.2, 0.88],
+  [ 10,  9, -25, 3.0, 0.85],
+  [ 40,  4, -20, 1.8, 0.90],
+  [-50,  3, -15, 2.5, 0.82],
+  [ 20,  7, -35, 2.0, 0.87],
+  [-15, 10, -40, 3.5, 0.80],
+  [ 55,  5, -10, 1.6, 0.92],
+  [-40,  8, -28, 2.8, 0.84],
+  [  0,  2, -18, 1.4, 0.90],
+  [ 30, 11, -45, 2.2, 0.78],
+  [-25,  5, -8,  1.9, 0.86],
+  [ 48, 12, -32, 2.6, 0.83],
+  [-60,  6, -22, 2.0, 0.89],
+  [ 15,  3, -12, 1.5, 0.93],
+  [-8,   9, -50, 3.2, 0.79],
+];
+cloudData.forEach(([x, y, z, s, o]) => {
+  const c = makeCloud(x, y, z, s, o);
+  scene.add(c);
+  clouds.push({ mesh: c, speed: 0.012 + Math.random() * 0.018, baseY: y, amp: 0.3 + Math.random() * 0.5 });
+});
+
+// ── INDIGO AIRPLANE ──
+const planeGroup = new THREE.Group();
+scene.add(planeGroup);
+
+const INDIGO      = 0x3730a3;
+const INDIGO_DARK = 0x1e1b4b;
+const INDIGO_MID  = 0x4338ca;
+const INDIGO_LIGHT= 0x6366f1;
+const GLASS       = 0x93c5fd;
+const ENGINE_COL  = 0x312e81;
+const WHITE       = 0xf0f4ff;
+
+const bodyMat    = new THREE.MeshPhongMaterial({ color: INDIGO,       shininess: 140, specular: 0x8080ff });
+const bodyMatL   = new THREE.MeshPhongMaterial({ color: INDIGO_LIGHT, shininess: 100 });
+const wingMat    = new THREE.MeshPhongMaterial({ color: INDIGO_MID,   shininess: 100 });
+const darkMat    = new THREE.MeshPhongMaterial({ color: INDIGO_DARK,  shininess: 80  });
+const glassMat   = new THREE.MeshPhongMaterial({ color: GLASS,        shininess: 200, transparent: true, opacity: 0.75, emissive: 0x1d4ed8, emissiveIntensity: 0.1 });
+const engineMat  = new THREE.MeshPhongMaterial({ color: ENGINE_COL,   shininess: 120 });
+const whiteMat   = new THREE.MeshPhongMaterial({ color: WHITE,        shininess: 60  });
+const stripeMat  = new THREE.MeshPhongMaterial({ color: 0xffffff,     shininess: 40  });
+
+// Fuselage
+const fuselage = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 5.6, 36), bodyMat);
+fuselage.rotation.z = Math.PI / 2;
+planeGroup.add(fuselage);
+
+// White belly stripe
+const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.37, 5.4, 36, 1, true), whiteMat);
+belly.rotation.z = Math.PI / 2;
+belly.rotation.x = Math.PI;
+belly.scale.y = 0.25;
+belly.position.y = -0.35;
+planeGroup.add(belly);
+
+// Nose
+const nose = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.4, 36), bodyMatL);
+nose.rotation.z = -Math.PI / 2;
+nose.position.set(3.5, 0, 0);
+planeGroup.add(nose);
+
+// Tail cone
+const tailCone = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.4, 36), darkMat);
+tailCone.rotation.z = Math.PI / 2;
+tailCone.position.set(-3.6, 0, 0);
+planeGroup.add(tailCone);
+
+// Main wings (swept back)
+function makeWing(side) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0.6, 0);
+  shape.lineTo(-1.4, side * 3.8);
+  shape.lineTo(-2.6, side * 3.8);
+  shape.lineTo(-0.4, 0);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.1, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 2 });
+  return new THREE.Mesh(geo, wingMat);
+}
+const wR = makeWing(1);  wR.position.set(-0.3, 0, 0); planeGroup.add(wR);
+const wL = makeWing(-1); wL.position.set(-0.3, 0, 0); planeGroup.add(wL);
+
+// Wing tips (light indigo)
+function makeWingTip(side) {
+  const geo = new THREE.BoxGeometry(0.6, 0.07, 0.4);
+  const m = new THREE.Mesh(geo, bodyMatL);
+  m.position.set(-2.3, 0, side * 3.75);
+  return m;
+}
+planeGroup.add(makeWingTip(1));
+planeGroup.add(makeWingTip(-1));
+
+// Tail horizontal stabiliser
+const tWing = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.09, 2.2), wingMat);
+tWing.position.set(-2.8, 0, 0);
+planeGroup.add(tWing);
+
+// Tail vertical fin
+const tFin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.2, 0.09), bodyMatL);
+tFin.position.set(-2.7, 0.6, 0);
+planeGroup.add(tFin);
+
+// Cockpit visor
+const cockpit = new THREE.Mesh(
+  new THREE.SphereGeometry(0.38, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.55),
+  glassMat
+);
+cockpit.rotation.z = Math.PI;
+cockpit.position.set(2.9, 0.28, 0);
+planeGroup.add(cockpit);
+
+// Passenger windows
+for (let i = 0; i < 12; i++) {
+  const win = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), glassMat);
+  win.position.set(2.1 - i * 0.4, 0.38, 0.42);
+  planeGroup.add(win);
+}
+
+// Engines
+function makeEngine(xOff, zOff) {
+  const g = new THREE.Group();
+  const nacelle = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 1.1, 28), engineMat);
+  nacelle.rotation.z = Math.PI / 2;
+  const fanRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.05, 8, 28), bodyMatL);
+  fanRing.position.x = 0.58;
+  const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.3, 20), darkMat);
+  exhaust.rotation.z = Math.PI / 2;
+  exhaust.position.x = -0.68;
+  const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.1), darkMat);
+  pylon.position.set(0, 0.22, 0);
+  g.add(nacelle, fanRing, exhaust, pylon);
+  g.position.set(xOff, -0.36, zOff);
+  return g;
+}
+planeGroup.add(makeEngine(-0.5,  1.6));
+planeGroup.add(makeEngine(-0.5, -1.6));
+
+// Landing gear
+function makeGear(x, z) {
+  const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 10), darkMat);
+  strut.position.set(x, -0.62, z);
+  const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.05, 8, 16), engineMat);
+  wheel.rotation.x = Math.PI / 2;
+  wheel.position.set(x, -0.88, z);
+  const g = new THREE.Group();
+  g.add(strut, wheel);
+  return g;
+}
+planeGroup.add(makeGear(-0.3,  0.38));
+planeGroup.add(makeGear(-0.3, -0.38));
+planeGroup.add(makeGear( 1.0,  0));
+
+// Indigo livery stripe
+const livery = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.435, 0.375, 5.4, 36, 1, true),
+  new THREE.MeshPhongMaterial({ color: INDIGO_LIGHT, shininess: 100, transparent: true, opacity: 0.45 })
+);
+livery.rotation.z = Math.PI / 2;
+livery.scale.y = 0.06;
+planeGroup.add(livery);
+
+planeGroup.position.set(3, 1.5, 0);
+planeGroup.rotation.set(0.04, -0.35, 0.08);
+
+// ── SCROLL & MOUSE ──
+let scrollY = 0, targetScrollY = 0;
+let mouseNX = 0, mouseNY = 0;
+
+window.addEventListener('scroll', () => {
+  targetScrollY = window.scrollY;
+  const ss = document.getElementById('scene-section');
+  const progress = Math.max(0, Math.min(1, (window.scrollY - ss.offsetTop) / ss.offsetHeight));
+  const show = progress > 0.08 && progress < 0.88;
+  ['stat1','stat2','stat3'].forEach(id => {
+    document.getElementById(id).classList.toggle('visible', show);
+  });
+  document.getElementById('sceneLabel').classList.toggle('hidden', progress >= 0.88);
+});
+
+document.addEventListener('mousemove', e => {
+  mouseNX = (e.clientX / window.innerWidth  - 0.5) * 2;
+  mouseNY = -(e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+// ── REVEAL ──
+document.querySelectorAll('.reveal').forEach(el =>
+  new IntersectionObserver(([e]) => e.isIntersecting && el.classList.add('visible'), { threshold: 0.15 }).observe(el)
+);
+
+// ── ANIMATION LOOP ──
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  scrollY += (targetScrollY - scrollY) * 0.07;
+  const sf = scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
+
+  // Plane
+  planeGroup.rotation.x = mouseNY * 0.07 + Math.sin(t * 0.35) * 0.04;
+  planeGroup.rotation.y = -0.35 + mouseNX * 0.07;
+  planeGroup.rotation.z =  0.08 + Math.sin(t * 0.5) * 0.03;
+  planeGroup.position.x = 3   - sf * 22;
+  planeGroup.position.y = 1.5 + Math.sin(t * 0.45) * 0.35 - sf * 6;
+  planeGroup.position.z = sf * 9;
+
+  // Camera
+  camera.position.x = mouseNX * 1.2;
+  camera.position.y = mouseNY * 0.8 - sf * 1.5;
+  camera.position.z = 14 - sf * 4;
+  camera.lookAt(0, 0, 0);
+
+  // Sky colour shifts subtly with scroll
+  const r = 0.79 - sf * 0.15, g = 0.91 - sf * 0.1, b = 0.97 - sf * 0.05;
+  renderer.setClearColor(new THREE.Color(r, g, b), 1);
+  scene.background = new THREE.Color(r, g, b);
+
+  // Clouds drift
+  clouds.forEach(({ mesh, speed, baseY, amp }, i) => {
+    mesh.position.x += speed;
+    mesh.position.y = baseY + Math.sin(t * 0.2 + i) * amp;
+    if (mesh.position.x > 70) mesh.position.x = -70;
+  });
+
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
